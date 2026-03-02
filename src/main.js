@@ -1,17 +1,28 @@
-import { ComponentRegistry } from 'mailspring-exports';
+import { ComponentRegistry, ExtensionRegistry } from 'mailspring-exports';
 
-import MyComposerButton from './my-composer-button';
-import MyMessageSidebar from './my-message-sidebar';
+import MessageAttachmentsInlinePdf from './message-attachments-inline-pdf';
+import LongDashQuotedReplyExtension from './extensions/long-dash-quoted-reply-extension';
+import MessageOwnerStatus from './message-owner-status';
+
+let CoreMessageAttachments = null;
 
 // Activate is called when the package is loaded. If your package previously
 // saved state using `serialize` it is provided.
 //
 export function activate() {
-  ComponentRegistry.register(MyComposerButton, {
-    role: 'Composer:ActionButton',
+  ExtensionRegistry.MessageView.register(LongDashQuotedReplyExtension);
+
+  ComponentRegistry.register(MessageOwnerStatus, {
+    role: 'MessageHeaderStatus',
   });
-  ComponentRegistry.register(MyMessageSidebar, {
-    role: 'MessageListSidebar:ContactCard',
+
+  CoreMessageAttachments = ComponentRegistry.findComponentByName('MessageAttachments');
+  if (CoreMessageAttachments) {
+    ComponentRegistry.unregister(CoreMessageAttachments);
+  }
+
+  ComponentRegistry.register(MessageAttachmentsInlinePdf, {
+    role: 'MessageAttachments',
   });
 }
 
@@ -27,6 +38,15 @@ export function serialize() {}
 // subscribing to events, release them here.
 //
 export function deactivate() {
-  ComponentRegistry.unregister(MyComposerButton);
-  ComponentRegistry.unregister(MyMessageSidebar);
+  ExtensionRegistry.MessageView.unregister(LongDashQuotedReplyExtension);
+
+  ComponentRegistry.unregister(MessageOwnerStatus);
+  ComponentRegistry.unregister(MessageAttachmentsInlinePdf);
+
+  if (CoreMessageAttachments) {
+    ComponentRegistry.register(CoreMessageAttachments, {
+      role: 'MessageAttachments',
+    });
+  }
+  CoreMessageAttachments = null;
 }

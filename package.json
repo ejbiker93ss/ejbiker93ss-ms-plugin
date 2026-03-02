@@ -14,7 +14,7 @@
   },
   "windowTypes": {
     "default": true,
-    "composer": true
+    "thread-popout": true
   },
   "description": "Enter a description of your package!",
   "devDependencies": {
