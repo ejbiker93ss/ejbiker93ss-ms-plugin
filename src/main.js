@@ -3,6 +3,7 @@ import { ComponentRegistry, ExtensionRegistry } from 'mailspring-exports';
 import MessageAttachmentsInlinePdf from './message-attachments-inline-pdf';
 import LongDashQuotedReplyExtension from './extensions/long-dash-quoted-reply-extension';
 import MessageOwnerStatus from './message-owner-status';
+import StickyThreadHeader from './sticky-thread-header';
 
 let CoreMessageAttachments = null;
 
@@ -14,6 +15,10 @@ export function activate() {
 
   ComponentRegistry.register(MessageOwnerStatus, {
     role: 'MessageHeaderStatus',
+  });
+
+  ComponentRegistry.register(StickyThreadHeader, {
+    role: 'MessageListHeaders',
   });
 
   CoreMessageAttachments = ComponentRegistry.findComponentByName('MessageAttachments');
@@ -41,6 +46,7 @@ export function deactivate() {
   ExtensionRegistry.MessageView.unregister(LongDashQuotedReplyExtension);
 
   ComponentRegistry.unregister(MessageOwnerStatus);
+  ComponentRegistry.unregister(StickyThreadHeader);
   ComponentRegistry.unregister(MessageAttachmentsInlinePdf);
 
   if (CoreMessageAttachments) {

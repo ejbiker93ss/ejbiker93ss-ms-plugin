@@ -6,8 +6,12 @@ import {
   TaskQueue,
   CategoryStore,
   ChangeFolderTask,
+  MessageStore,
 } from 'mailspring-exports';
 import { RetinaImg } from 'mailspring-component-kit';
+
+const PREF_DESCENDING_ORDER = 'core.reading.descendingOrderMessageList';
+const MINIFY_THRESHOLD = 3;
 
 export default class MessageOwnerStatus extends React.Component {
   static displayName = 'MessageOwnerStatus';
@@ -29,6 +33,7 @@ export default class MessageOwnerStatus extends React.Component {
 
   componentDidMount() {
     this._applyOwnershipClasses();
+    this._startReplyAreaObserver();
   }
 
   componentDidUpdate() {
@@ -36,12 +41,13 @@ export default class MessageOwnerStatus extends React.Component {
   }
 
   componentWillUnmount() {
+    this._stopReplyAreaObserver();
     const wrap = this._messageWrap();
     if (wrap) {
       wrap.classList.remove('sent-by-me');
       wrap.classList.remove('received-from-others');
     }
-    this._syncFooterReplyArea();
+    this._syncReplyAreaClasses();
   }
 
   _messageWrap() {
@@ -69,26 +75,146 @@ export default class MessageOwnerStatus extends React.Component {
     wrap.classList.toggle('sent-by-me', sentByMe);
     wrap.classList.toggle('received-from-others', !sentByMe);
 
-    this._syncFooterReplyArea();
+    this._syncAllMessageOwnershipClasses();
+    this._syncReplyAreaClasses();
   }
 
-  _syncFooterReplyArea() {
+  _isSentMessage(message) {
+    if (!message) {
+      return false;
+    }
+
+    if (message.draft) {
+      return true;
+    }
+
+    const from = message.from && message.from[0];
+    if (!from || !from.email) {
+      return false;
+    }
+
+    const account = AccountStore.accountForEmail(from.email);
+    return !!account && account.id === message.accountId;
+  }
+
+  _startReplyAreaObserver() {
+    if (this._replyAreaObserver || !window.MutationObserver) {
+      return;
+    }
+
     const messageList = document.querySelector('#message-list');
     if (!messageList) {
       return;
     }
 
-    const footerReplyArea = messageList.querySelector('.footer-reply-area-wrap');
-    if (!footerReplyArea) {
+    this._replyAreaObserver = new MutationObserver(() => {
+      this._syncAllMessageOwnershipClasses();
+      this._syncReplyAreaClasses();
+    });
+    this._replyAreaObserver.observe(messageList, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  _stopReplyAreaObserver() {
+    if (this._replyAreaObserver) {
+      this._replyAreaObserver.disconnect();
+      this._replyAreaObserver = null;
+    }
+  }
+
+  _syncReplyAreaClasses() {
+    const messageList = document.querySelector('#message-list');
+    if (!messageList) {
       return;
     }
 
-    const messageWraps = Array.from(messageList.querySelectorAll('.message-item-wrap'));
-    const lastVisibleWrap = messageWraps.reverse().find(wrap => !wrap.classList.contains('collapsed'));
+    this._syncReplyAreaTarget(messageList.querySelector('.footer-reply-area-wrap'), true, false);
 
-    const sentByMe = !!lastVisibleWrap && lastVisibleWrap.classList.contains('sent-by-me');
-    footerReplyArea.classList.toggle('sent-by-me', sentByMe);
-    footerReplyArea.classList.toggle('received-from-others', !!lastVisibleWrap && !sentByMe);
+    Array.from(messageList.querySelectorAll('.composer-outer-wrap')).forEach(composerWrap => {
+      this._syncReplyAreaTarget(composerWrap, true, false);
+      this._syncReplyAreaTarget(composerWrap.closest('.message-item-wrap'), true, false);
+    });
+  }
+
+  _syncAllMessageOwnershipClasses() {
+    const messageList = document.querySelector('#message-list');
+    if (!messageList) {
+      return;
+    }
+
+    let messages = this._visibleMessages(MessageStore.items() || []);
+    if (AppEnv.config.get(PREF_DESCENDING_ORDER)) {
+      messages = [...messages].reverse();
+    }
+
+    const messageWraps = Array.from(messageList.querySelectorAll('.message-item-wrap'));
+    messageWraps.forEach((wrap, index) => {
+      const message = messages[index];
+      if (!message) {
+        wrap.classList.remove('sent-by-me');
+        wrap.classList.remove('received-from-others');
+        return;
+      }
+
+      const sentByMe = this._isSentMessage(message);
+      wrap.classList.toggle('sent-by-me', sentByMe);
+      wrap.classList.toggle('received-from-others', !sentByMe);
+    });
+  }
+
+  _visibleMessages(allMessages) {
+    const messagesExpandedState = MessageStore.itemsExpandedState();
+    const messages = [...allMessages];
+    const minifyRanges = [];
+    let consecutiveCollapsed = 0;
+
+    messages.forEach((message, idx) => {
+      if (idx === 0) {
+        return;
+      }
+
+      const expandState = messagesExpandedState[message.id];
+
+      if (!expandState) {
+        consecutiveCollapsed += 1;
+      } else {
+        const minifyOffset = expandState === 'default' ? 1 : 0;
+
+        if (consecutiveCollapsed >= MINIFY_THRESHOLD + minifyOffset) {
+          minifyRanges.push({
+            start: idx - consecutiveCollapsed,
+            length: consecutiveCollapsed - minifyOffset,
+          });
+        }
+        consecutiveCollapsed = 0;
+      }
+    });
+
+    let indexOffset = 0;
+    for (const range of minifyRanges) {
+      const start = range.start - indexOffset;
+      messages.splice(start, range.length);
+      indexOffset += range.length;
+    }
+
+    return messages;
+  }
+
+  _syncReplyAreaTarget(target, sentByMe, receivedFromOthers) {
+    if (!target) {
+      return;
+    }
+
+    const hasSentByMe = target.classList.contains('sent-by-me');
+    const hasReceivedFromOthers = target.classList.contains('received-from-others');
+    if (hasSentByMe !== sentByMe) {
+      target.classList.toggle('sent-by-me', sentByMe);
+    }
+    if (hasReceivedFromOthers !== receivedFromOthers) {
+      target.classList.toggle('received-from-others', receivedFromOthers);
+    }
   }
 
   _inTrashFolder() {

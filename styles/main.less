@@ -44,6 +44,36 @@
   max-width: calc(100% - 50px);
 }
 
+#message-list .message-item-wrap.collapsed.sent-by-me .message-item-white-wrap {
+  margin-left: 40px;
+  margin-right: 10px;
+  border: 1px solid rgba(108, 212, 32, 0.2);
+  border-left: 3px solid #6cd420;
+  border-radius: 12px;
+  max-width: calc(100% - 50px);
+}
+
+#message-list .message-item-wrap.sent-by-me .message-item-white-wrap.composer-outer-wrap,
+#message-list .message-item-white-wrap.composer-outer-wrap.sent-by-me {
+  margin-left: 40px;
+  margin-right: 10px;
+  border: 1px solid rgba(108, 212, 32, 0.2);
+  border-left: 3px solid #6cd420;
+  border-radius: 12px;
+  background: @background-primary;
+  background-color: @background-primary;
+  max-width: calc(100% - 50px);
+}
+
+#message-list .message-item-wrap.sent-by-me .message-item-white-wrap.composer-outer-wrap.focused,
+#message-list .message-item-white-wrap.composer-outer-wrap.sent-by-me.focused {
+  border: 1px solid rgba(108, 212, 32, 0.2);
+  border-left: 3px solid #6cd420;
+  border-radius: 12px;
+  background: @background-primary;
+  background-color: @background-primary;
+}
+
 #message-list .message-item-wrap.received-from-others .message-item-white-wrap {
   margin-left: 10px;
   margin-right: 40px;
@@ -53,14 +83,32 @@
   max-width: calc(100% - 50px);
 }
 
+#message-list .message-item-wrap.collapsed.received-from-others .message-item-white-wrap {
+  margin-left: 10px;
+  margin-right: 40px;
+  border: 1px solid rgba(74, 144, 226, 0.2);
+  border-left: 3px solid #4a90e2;
+  border-radius: 12px;
+  max-width: calc(100% - 50px);
+}
+
+#message-list .message-item-wrap.received-from-others .message-item-white-wrap.composer-outer-wrap,
+#message-list .message-item-white-wrap.composer-outer-wrap.received-from-others {
+  margin-left: 10px;
+  margin-right: 40px;
+  max-width: calc(100% - 50px);
+}
+
 /* Bottom reply area alignment should match */
 #message-list .footer-reply-area-wrap.sent-by-me {
+  margin-top: 4px;
   margin-left: 40px;
   margin-right: 10px;
   max-width: calc(100% - 50px);
 }
 
 #message-list .footer-reply-area-wrap.received-from-others {
+  margin-top: 4px;
   margin-left: 10px;
   margin-right: 40px;
   max-width: calc(100% - 50px);
@@ -93,11 +141,13 @@
     padding: 10px 12px;
     border-bottom: 1px solid @border-color-divider;
     background: @background-primary;
+    color: @text-color;
   }
 
   .inline-pdf-preview-title {
     font-size: 13px;
     font-weight: 600;
+    color: inherit !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
